@@ -63,7 +63,7 @@ export default function Dashboard() {
         {/* Top Row: GPU Showcase & Verdict */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-1">
-          <GpuVisualCard hardware={hardware} />
+          <GpuVisualCard hardware={hardware} gpuCount={state.gpuCount} />
         </div>
         <div className="lg:col-span-2 space-y-6">
           <VerdictBanner verdict={result.verdict} text={result.verdictText} />

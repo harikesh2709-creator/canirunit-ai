@@ -37,6 +37,7 @@ import { AffiliateCard } from './AffiliateTriggers';
 import { EthicalAdSlot, ProFeatureGate } from './MonetizationBanner';
 import CliSyncModal from './CliSyncModal';
 import { useCalculator } from '@/lib/CalculatorContext';
+import { calculateLLMScore, getTierConfig, GPUTier } from '@/lib/gpuBenchmark';
 
 // ============================================================================
 // Props
@@ -53,12 +54,7 @@ interface BenchmarkScannerProps {
 // Tier config for visual styling
 // ============================================================================
 
-const tierStyles: Record<EmpiricalTier, { color: string; glow: string; bg: string; gradient: string }> = {
-  'tier-1': { color: '#f59e0b', glow: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.1)', gradient: 'from-amber-500/20 to-orange-500/20' },
-  'tier-2': { color: '#3b82f6', glow: 'rgba(59,130,246,0.3)', bg: 'rgba(59,130,246,0.1)', gradient: 'from-blue-500/20 to-cyan-500/20' },
-  'tier-3': { color: '#10b981', glow: 'rgba(16,185,129,0.3)', bg: 'rgba(16,185,129,0.1)', gradient: 'from-emerald-500/20 to-teal-500/20' },
-  'tier-4': { color: '#8b5cf6', glow: 'rgba(139,92,246,0.3)', bg: 'rgba(139,92,246,0.1)', gradient: 'from-violet-500/20 to-purple-500/20' },
-};
+// Tier styles are now driven by gpuBenchmark.ts via getTierConfig()
 
 // ============================================================================
 // Component
@@ -83,18 +79,19 @@ export default function BenchmarkScanner({
   const router = useRouter();
 
   const handleLeaderboardSubmit = useCallback(() => {
-    if (!benchmarkResult || !detection) return;
+    if (!detection) return;
     const nickname = window.prompt("Enter your nickname for the global leaderboard:");
     if (!nickname || nickname.trim().length === 0) return;
     
+    const llmScore = calculateLLMScore(hardware, state.gpuCount);
     let tierNum: 1 | 2 | 3 = 3;
-    if (benchmarkResult.tier === 'tier-1') tierNum = 1;
-    if (benchmarkResult.tier === 'tier-2') tierNum = 2;
-    if (benchmarkResult.tier === 'tier-3' || benchmarkResult.tier === 'tier-4') tierNum = 3;
+    if (llmScore.tier === 'S') tierNum = 1;
+    if (llmScore.tier === 'A') tierNum = 2;
+    if (llmScore.tier === 'B' || llmScore.tier === 'C' || llmScore.tier === 'D') tierNum = 3;
 
-    submitToLeaderboard(nickname.trim(), detection.name, benchmarkResult.aiScore, tierNum);
+    submitToLeaderboard(nickname.trim(), detection.name, llmScore.score, tierNum);
     router.push('/leaderboard');
-  }, [benchmarkResult, detection, router]);
+  }, [detection, hardware, state.gpuCount, router]);
 
   const handleScan = useCallback(async () => {
     setPhase('detecting');
@@ -312,32 +309,41 @@ export default function BenchmarkScanner({
                   System Assessment
                 </div>
                 {(() => {
-                  const theoreticalTierMap: Record<string, string> = {
-                    'excellent': 'tier-1',
-                    'good': 'tier-2',
-                    'usable': 'tier-3',
-                    'slow': 'tier-4',
-                    'unusable': 'tier-4'
-                  };
-                  
-                  const isSec = state.activeProfile === 'secondary';
-                  const hasResult = isSec ? (calcResult?.performance?.estimatedTPS ?? 0) > 0 : benchmarkResult?.success;
-                  
-                  if (!hasResult) return null;
-                  
-                  const activeScore = isSec ? Math.round(calcResult.performance.estimatedTPS * 10) : benchmarkResult?.aiScore;
-                  const rawTier = isSec ? theoreticalTierMap[calcResult.performance.tier] : benchmarkResult?.tier;
-                  const activeTier = rawTier as 'tier-1' | 'tier-2' | 'tier-3' | 'tier-4';
+                  // Always compute LLM Score from the hardware spec
+                  const llmScore = calculateLLMScore(hardware, state.gpuCount);
+                  const tierConfig = getTierConfig(llmScore.tier);
                   
                   return (
-                    <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-bold border" 
-                         style={{ 
-                           color: tierStyles[activeTier]?.color || '#8b5cf6', 
-                           background: tierStyles[activeTier]?.bg || 'rgba(139,92,246,0.1)',
-                           borderColor: tierStyles[activeTier]?.glow || 'rgba(139,92,246,0.3)'
-                         }}>
+                    <div 
+                      className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-bold border cursor-help relative group/score" 
+                      style={{ 
+                        color: tierConfig.color, 
+                        background: tierConfig.bg,
+                        borderColor: tierConfig.glow
+                      }}
+                      title={`VRAM: ${llmScore.vramScore} | BW: ${llmScore.bandwidthScore} | Compute: ${llmScore.computeScore}`}
+                    >
                       <Sparkles className="w-3 h-3" />
-                      Score: {activeScore} {isSec && '(Theoretical)'}
+                      LLM Score: {llmScore.score}/100
+                      {/* Tooltip breakdown */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 rounded-lg bg-black/90 border border-white/10 backdrop-blur-xl opacity-0 group-hover/score:opacity-100 pointer-events-none transition-opacity z-50 text-left">
+                        <div className="text-[10px] font-bold text-white mb-1.5">{llmScore.tierLabel}</div>
+                        <div className="text-[9px] text-slate-400 mb-2">{llmScore.tierDescription}</div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">VRAM (40%)</span>
+                            <span className="text-white font-mono">{llmScore.vramScore}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Bandwidth (40%)</span>
+                            <span className="text-white font-mono">{llmScore.bandwidthScore}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Compute (20%)</span>
+                            <span className="text-white font-mono">{llmScore.computeScore}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}

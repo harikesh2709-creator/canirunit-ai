@@ -1,9 +1,10 @@
 'use client';
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import Image from 'next/image';
 import { HardwareSpec } from '@/lib/types';
 import { Cpu, Zap, Activity, HardDrive } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { calculateLLMScore, getTierConfig } from '@/lib/gpuBenchmark';
 
 const PLATFORM_COLORS = {
   nvidia: '#76b900',
@@ -17,9 +18,16 @@ const IMAGE_URLS: Record<string, string> = {
   amd: '/gpus/amd.png',
 };
 
-export default memo(function GpuVisualCard({ hardware }: { hardware: HardwareSpec }) {
+export default memo(function GpuVisualCard({ hardware, gpuCount = 1 }: { hardware: HardwareSpec; gpuCount?: number }) {
   const color = PLATFORM_COLORS[hardware.platform as keyof typeof PLATFORM_COLORS] || '#14b8a6';
   const imgUrl = IMAGE_URLS[hardware.platform];
+  const llmScore = useMemo(() => calculateLLMScore(hardware, gpuCount), [hardware, gpuCount]);
+  const tierConfig = getTierConfig(llmScore.tier);
+
+  // SVG circular progress values
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (llmScore.score / 100) * circumference;
 
   return (
     <motion.div 
@@ -32,8 +40,6 @@ export default memo(function GpuVisualCard({ hardware }: { hardware: HardwareSpe
         borderColor: `${color}30`,
       }}
     >
-      {/* Removed ambient glows for crisp look */}
-           
       <div className="p-6 flex flex-col md:flex-row gap-6 items-center relative z-10">
         {/* Visual Fallback / Render */}
         <motion.div
@@ -51,24 +57,59 @@ export default memo(function GpuVisualCard({ hardware }: { hardware: HardwareSpe
            ) : (
              <Cpu className="w-16 h-16 transition-colors duration-500" style={{ color }} />
            )}
-           {/* Inner shadow overlay */}
            <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] pointer-events-none" />
-           {/* Colored glow behind image */}
            <div className="absolute -inset-2 blur-xl transition-colors duration-500 -z-10" style={{ background: `${color}25` }} />
         </motion.div>
         
         {/* Specs */}
         <div className="flex-1 w-full space-y-4">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{hardware.name}</h3>
-            <p
-              className="text-xs uppercase tracking-widest font-bold transition-colors duration-500"
-              style={{
-                color,
-              }}
-            >
-              {hardware.platform.toUpperCase()} ARCHITECTURE
-            </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{hardware.name}</h3>
+              <p
+                className="text-xs uppercase tracking-widest font-bold transition-colors duration-500"
+                style={{ color }}
+              >
+                {hardware.platform.toUpperCase()} ARCHITECTURE
+              </p>
+            </div>
+            {/* LLM Score Ring */}
+            <div className="flex-shrink-0 relative w-16 h-16 cursor-help group/ring">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                <circle
+                  cx="32" cy="32" r={radius}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth="4"
+                />
+                <motion.circle
+                  cx="32" cy="32" r={radius}
+                  fill="none"
+                  stroke={tierConfig.color}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  initial={{ strokeDashoffset: circumference }}
+                  animate={{ strokeDashoffset }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                  style={{ filter: `drop-shadow(0 0 6px ${tierConfig.glow})` }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-sm font-black text-white leading-none">{llmScore.score}</span>
+                <span className="text-[8px] font-bold mt-0.5" style={{ color: tierConfig.color }}>{llmScore.tier}-Tier</span>
+              </div>
+              {/* Tooltip */}
+              <div className="absolute bottom-full right-0 mb-2 w-44 p-2.5 rounded-lg bg-black/90 border border-white/10 backdrop-blur-xl opacity-0 group-hover/ring:opacity-100 pointer-events-none transition-opacity z-50 text-left">
+                <div className="text-[10px] font-bold text-white mb-1">{llmScore.tierLabel}</div>
+                <div className="text-[9px] text-slate-400 mb-2">{llmScore.tierDescription}</div>
+                <div className="space-y-1.5">
+                  <ScoreBar label="VRAM" value={llmScore.vramScore} color="#a855f7" />
+                  <ScoreBar label="Bandwidth" value={llmScore.bandwidthScore} color="#3b82f6" />
+                  <ScoreBar label="Compute" value={llmScore.computeScore} color="#10b981" />
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-3">
@@ -82,6 +123,24 @@ export default memo(function GpuVisualCard({ hardware }: { hardware: HardwareSpe
     </motion.div>
   );
 });
+
+// Score breakdown bar for tooltip
+function ScoreBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex justify-between text-[9px]">
+        <span className="text-slate-500">{label}</span>
+        <span className="text-white font-mono">{value}</span>
+      </div>
+      <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${value}%`, background: color }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // Spec chip with colored hover
 function SpecChip({
