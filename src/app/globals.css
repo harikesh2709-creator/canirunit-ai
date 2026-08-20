@@ -1,26 +1,150 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   LLMFit.ai — ShipTrack Theme
+   ============================================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ============================================================================
+   LLMFit.ai — Crisp Light & Dark Theme
+   ============================================================================ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-900: #134e4a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-slate-50 text-slate-900 dark:bg-[#000000] dark:text-slate-50 antialiased;
+  overflow-x: hidden;
+  overscroll-behavior: none; 
 }
+
+/* --------------------------------------------------------------------------
+   Crisp Panels
+   -------------------------------------------------------------------------- */
+.theme-panel,
+.glass-panel,
+.glass-card,
+.glass-card-elevated {
+  @apply bg-white dark:bg-[#09090b] border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm dark:shadow-none transition-colors duration-200 relative;
+}
+
+.theme-panel:hover,
+.glass-panel:hover,
+.glass-card:hover,
+.glass-card-elevated:hover {
+  @apply border-slate-300 dark:border-slate-700 shadow-md dark:shadow-none;
+}
+
+/* --------------------------------------------------------------------------
+   Colorful Data Elements (Gradients)
+   -------------------------------------------------------------------------- */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-500 to-teal-400;
+}
+.gradient-text-cyan {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-blue-500 dark:from-cyan-400 dark:to-blue-400;
+}
+.gradient-text-purple {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-fuchsia-500 dark:from-purple-400 dark:to-fuchsia-400;
+}
+.gradient-text-pink {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-500 dark:from-pink-400 dark:to-rose-400;
+}
+.gradient-text-emerald {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-400;
+}
+.text-glow { 
+  /* Removed glow for crisp look */
+}
+
+/* --------------------------------------------------------------------------
+   Stunning Buttons
+   -------------------------------------------------------------------------- */
+.btn-primary {
+  background: #14b8a6; /* brand-500 */
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 15px rgba(20, 184, 166, 0.2);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #0d9488; /* brand-600 */
+  box-shadow: 0 0 25px rgba(20, 184, 166, 0.4);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* --------------------------------------------------------------------------
+   Custom Range Slider
+   -------------------------------------------------------------------------- */
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 1); /* slate-800 */
+  outline: none;
+  cursor: pointer;
+}
+
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #14b8a6;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* --------------------------------------------------------------------------
+   Toast Notifications
+   -------------------------------------------------------------------------- */
+@keyframes slideInUp {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutDown {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100px); opacity: 0; }
+}
+
+.toast-enter {
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+  animation: slideOutDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --------------------------------------------------------------------------
+   Recharts Custom Overrides
+   -------------------------------------------------------------------------- */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(30, 41, 59, 1);
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+

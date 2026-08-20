@@ -1,5 +1,5 @@
 {
-  "name": "canirunit-ai",
+  "name": "llmfit-ai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,15 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "framer-motion": "^13.1.0",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.31.0",
     "next": "16.3.1",
+    "next-themes": "^0.4.6",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@webgpu/types": "^0.1.71",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
