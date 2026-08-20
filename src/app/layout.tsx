@@ -43,6 +43,7 @@ export const metadata: Metadata = {
 import { CalculatorProvider } from '@/lib/CalculatorContext';
 import ClientLayout from '@/components/ClientLayout';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import Script from 'next/script';
 
 export default function RootLayout({
   children,
@@ -71,10 +72,17 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* Google AdSense Integration (Uncomment and replace ca-pub-XXXXXX with your publisher ID) */}
-        {/* <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXX" crossOrigin="anonymous"></script> */}
       </head>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+        {/* Google AdSense Integration using next/script */}
+        {process.env.NEXT_PUBLIC_ADSENSE_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <CalculatorProvider>
             <ClientLayout>
