@@ -13,7 +13,7 @@ export default function AdBanner({
   dataAdFormat = 'auto',
   dataFullWidthResponsive = true,
 }: AdBannerProps) {
-  const adRef = useRef<HTMLInsElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
     try {
@@ -26,8 +26,7 @@ export default function AdBanner({
     }
   }, []);
 
-  // Only render if we have an AdSense ID in the environment
-  if (!process.env.NEXT_PUBLIC_ADSENSE_ID) return null;
+  // Render AdSense ad
 
   return (
     <div className="w-full flex justify-center my-4">
@@ -35,7 +34,7 @@ export default function AdBanner({
         ref={adRef}
         className="adsbygoogle"
         style={{ display: 'block', width: '100%' }}
-        data-ad-client={process.env.NEXT_PUBLIC_ADSENSE_ID}
+        data-ad-client="ca-pub-7982721750221826"
         data-ad-slot={dataAdSlot}
         data-ad-format={dataAdFormat}
         data-full-width-responsive={dataFullWidthResponsive.toString()}
