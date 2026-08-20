@@ -404,10 +404,10 @@ export default function BenchmarkScanner({
               
               {/* Hardware Details */}
               <div>
-                <p className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 truncate" title={state.activeProfile === 'secondary' ? hardware.name : detection.rawRenderer}>
-                  {state.activeProfile === 'secondary' ? hardware.name : detection.name}
+                <p className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 truncate" title={hardware.name}>
+                  {hardware.name}
                 </p>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-1" title={state.activeProfile === 'secondary' ? 'Manually selected profile' : detection.rawRenderer}>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-1" title={detection.rawRenderer}>
                   {state.activeProfile === 'secondary' ? 'Status: Dedicated Profile Active' : `Raw Output: ${detection.rawRenderer}`}
                 </p>
               </div>
@@ -417,14 +417,14 @@ export default function BenchmarkScanner({
                 <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-1">
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">VRAM</span>
                   <div className="flex items-end gap-1">
-                    <span className="text-lg font-bold text-white leading-none">{state.activeProfile === 'secondary' ? hardware.vramGB : detection.vramGB}</span>
+                    <span className="text-lg font-bold text-white leading-none">{hardware.vramGB}</span>
                     <span className="text-xs text-indigo-300 font-medium pb-0.5">GB</span>
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-white/5 border border-white/5 flex flex-col gap-1">
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bandwidth</span>
                   <div className="flex items-end gap-1">
-                    <span className="text-lg font-bold text-white leading-none">{state.activeProfile === 'secondary' ? hardware.bandwidthGBs : detection.bandwidthGBs}</span>
+                    <span className="text-lg font-bold text-white leading-none">{hardware.bandwidthGBs}</span>
                     <span className="text-xs text-purple-300 font-medium pb-0.5">GB/s</span>
                   </div>
                 </div>

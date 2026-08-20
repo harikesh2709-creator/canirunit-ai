@@ -160,11 +160,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             {/* Primary Config Controls */}
             <div className="glass-panel p-5 space-y-6">
               <HardwarePicker
-                selectedId={state.hardwareId}
+                selectedId={state.activeProfile === 'secondary' ? (state.secondaryHardwareId || '') : state.hardwareId}
                 customVramGB={state.customVramGB}
                 customBandwidthGBs={state.customBandwidthGBs}
                 gpuCount={state.gpuCount}
-                onSelect={(id) => update('hardwareId', id)}
+                onSelect={(id) => {
+                  if (state.activeProfile === 'secondary') {
+                    updateState({ secondaryHardwareId: id });
+                  } else {
+                    update('hardwareId', id);
+                  }
+                }}
                 onCustomVramChange={(v) => update('customVramGB', v)}
                 onCustomBandwidthChange={(bw) => update('customBandwidthGBs', bw)}
                 onGpuCountChange={(c) => update('gpuCount', c)}
