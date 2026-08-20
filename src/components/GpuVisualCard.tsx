@@ -40,84 +40,88 @@ export default memo(function GpuVisualCard({ hardware, gpuCount = 1 }: { hardwar
         borderColor: `${color}30`,
       }}
     >
-      <div className="p-6 flex flex-col md:flex-row gap-6 items-center relative z-10">
-        {/* Visual Fallback / Render */}
-        <motion.div
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          transition={{ type: 'spring', stiffness: 300 }}
-          className="w-36 h-36 flex-shrink-0 rounded-2xl flex items-center justify-center relative border transition-colors duration-500 overflow-hidden"
-          style={{
-            borderColor: `${color}40`,
-            background: 'rgba(0,0,0,0.5)',
-            boxShadow: `inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px ${color}15`,
-          }}
-        >
-           {imgUrl ? (
-             <Image src={imgUrl} alt={`${hardware.platform} GPU`} fill sizes="144px" className="object-contain p-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]" />
-           ) : (
-             <Cpu className="w-16 h-16 transition-colors duration-500" style={{ color }} />
-           )}
-           <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] pointer-events-none" />
-           <div className="absolute -inset-2 blur-xl transition-colors duration-500 -z-10" style={{ background: `${color}25` }} />
-        </motion.div>
-        
-        {/* Specs */}
-        <div className="flex-1 w-full space-y-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-wide">{hardware.name}</h3>
-              <p
-                className="text-xs uppercase tracking-widest font-bold transition-colors duration-500"
-                style={{ color }}
-              >
-                {hardware.platform.toUpperCase()} ARCHITECTURE
-              </p>
+      <div className="p-5 flex flex-col gap-4 relative z-10">
+        {/* Header with Title and Score Ring */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-wide leading-tight line-clamp-2">
+              {hardware.name}
+            </h3>
+            <p
+              className="text-[11px] uppercase tracking-widest font-bold transition-colors duration-500 mt-1"
+              style={{ color }}
+            >
+              {hardware.platform.toUpperCase()} ARCHITECTURE
+            </p>
+          </div>
+
+          {/* LLM Score Ring */}
+          <div className="flex-shrink-0 relative w-14 h-14 cursor-help group/ring">
+            <svg className="w-14 h-14 -rotate-90" viewBox="0 0 64 64">
+              <circle
+                cx="32" cy="32" r={radius}
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                strokeWidth="4"
+              />
+              <motion.circle
+                cx="32" cy="32" r={radius}
+                fill="none"
+                stroke={tierConfig.color}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                style={{ filter: `drop-shadow(0 0 6px ${tierConfig.glow})` }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xs font-black text-white leading-none">{llmScore.score}</span>
+              <span className="text-[7px] font-bold mt-0.5" style={{ color: tierConfig.color }}>{llmScore.tier}-Tier</span>
             </div>
-            {/* LLM Score Ring */}
-            <div className="flex-shrink-0 relative w-16 h-16 cursor-help group/ring">
-              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                <circle
-                  cx="32" cy="32" r={radius}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.06)"
-                  strokeWidth="4"
-                />
-                <motion.circle
-                  cx="32" cy="32" r={radius}
-                  fill="none"
-                  stroke={tierConfig.color}
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  initial={{ strokeDashoffset: circumference }}
-                  animate={{ strokeDashoffset }}
-                  transition={{ duration: 1.2, ease: 'easeOut' }}
-                  style={{ filter: `drop-shadow(0 0 6px ${tierConfig.glow})` }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-sm font-black text-white leading-none">{llmScore.score}</span>
-                <span className="text-[8px] font-bold mt-0.5" style={{ color: tierConfig.color }}>{llmScore.tier}-Tier</span>
-              </div>
-              {/* Tooltip */}
-              <div className="absolute bottom-full right-0 mb-2 w-44 p-2.5 rounded-lg bg-black/90 border border-white/10 backdrop-blur-xl opacity-0 group-hover/ring:opacity-100 pointer-events-none transition-opacity z-50 text-left">
-                <div className="text-[10px] font-bold text-white mb-1">{llmScore.tierLabel}</div>
-                <div className="text-[9px] text-slate-400 mb-2">{llmScore.tierDescription}</div>
-                <div className="space-y-1.5">
-                  <ScoreBar label="VRAM" value={llmScore.vramScore} color="#a855f7" />
-                  <ScoreBar label="Bandwidth" value={llmScore.bandwidthScore} color="#3b82f6" />
-                  <ScoreBar label="Compute" value={llmScore.computeScore} color="#10b981" />
-                </div>
+            {/* Tooltip */}
+            <div className="absolute top-full right-0 mt-2 w-48 p-3 rounded-xl bg-black/95 border border-white/15 backdrop-blur-xl opacity-0 group-hover/ring:opacity-100 pointer-events-none transition-opacity z-50 text-left shadow-2xl">
+              <div className="text-[11px] font-bold text-white mb-0.5">{llmScore.tierLabel}</div>
+              <div className="text-[9px] text-slate-400 mb-2.5 leading-tight">{llmScore.tierDescription}</div>
+              <div className="space-y-2">
+                <ScoreBar label="VRAM (40%)" value={llmScore.vramScore} color="#a855f7" />
+                <ScoreBar label="Bandwidth (40%)" value={llmScore.bandwidthScore} color="#3b82f6" />
+                <ScoreBar label="Compute (20%)" value={llmScore.computeScore} color="#10b981" />
               </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <SpecChip icon={HardDrive} label="VRAM Capacity" value={`${hardware.vramGB} GB ${hardware.platform !== 'apple' ? 'GDDR6X' : 'Unified'}`} color={color} />
-            <SpecChip icon={Zap} label="Bandwidth" value={`${hardware.bandwidthGBs} GB/s`} color={color} />
-            <SpecChip icon={Activity} label="Compute" value={`${(hardware.fp32TFLOPS ?? 0).toFixed(1)} TFLOPS`} color={color} />
-            <SpecChip icon={Cpu} label="Bus Width" value={hardware.busWidth ? `${hardware.busWidth}-bit` : (hardware.platform === 'apple' ? 'Unified' : 'Unknown')} color={color} />
-          </div>
+        </div>
+
+        {/* Visual Render / Icon */}
+        <div className="flex items-center justify-center py-2">
+          <motion.div
+            whileHover={{ scale: 1.04 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            className="w-24 h-24 rounded-2xl flex items-center justify-center relative border transition-colors duration-500 overflow-hidden"
+            style={{
+              borderColor: `${color}40`,
+              background: 'rgba(0,0,0,0.5)',
+              boxShadow: `inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px ${color}15`,
+            }}
+          >
+            {imgUrl ? (
+              <Image src={imgUrl} alt={`${hardware.platform} GPU`} fill sizes="96px" className="object-contain p-2 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]" />
+            ) : (
+              <Cpu className="w-12 h-12 transition-colors duration-500" style={{ color }} />
+            )}
+            <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] pointer-events-none" />
+            <div className="absolute -inset-2 blur-xl transition-colors duration-500 -z-10" style={{ background: `${color}25` }} />
+          </motion.div>
+        </div>
+
+        {/* Specs Grid */}
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <SpecChip icon={HardDrive} label="VRAM" value={`${hardware.vramGB} GB ${hardware.platform !== 'apple' ? 'GDDR6X' : 'Unified'}`} color={color} />
+          <SpecChip icon={Zap} label="Bandwidth" value={`${hardware.bandwidthGBs} GB/s`} color={color} />
+          <SpecChip icon={Activity} label="Compute" value={`${(hardware.fp32TFLOPS ?? 0).toFixed(1)} TFLOPS`} color={color} />
+          <SpecChip icon={Cpu} label="Bus Width" value={hardware.busWidth ? `${hardware.busWidth}-bit` : (hardware.platform === 'apple' ? 'Unified' : 'Unknown')} color={color} />
         </div>
       </div>
     </motion.div>
