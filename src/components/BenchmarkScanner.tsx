@@ -71,11 +71,9 @@ export default function BenchmarkScanner({
   const [progress, setProgress] = useState<BenchmarkProgress | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   
-  const [confirmVram, setConfirmVram] = useState<number>(8);
-  const [confirmIsIntegrated, setConfirmIsIntegrated] = useState<boolean>(false);
+  const [selectedHardwareId, setSelectedHardwareId] = useState<string>('rtx-4060-ti-8gb');
   
   const { state, hardware, result: calcResult, updateState } = useCalculator();
-
   const router = useRouter();
 
   const handleLeaderboardSubmit = useCallback(() => {
@@ -93,6 +91,16 @@ export default function BenchmarkScanner({
     router.push('/leaderboard');
   }, [detection, hardware, state.gpuCount, router]);
 
+  const selectedHw = useMemo(() => {
+    return HARDWARE_PRESETS.find(h => h.id === selectedHardwareId) || HARDWARE_PRESETS[0];
+  }, [selectedHardwareId]);
+
+  const previewLlmScore = useMemo(() => {
+    return calculateLLMScore(selectedHw, state.gpuCount);
+  }, [selectedHw, state.gpuCount]);
+
+  const previewTierConfig = getTierConfig(previewLlmScore.tier);
+
   const handleScan = useCallback(async () => {
     setPhase('detecting');
     setErrorMsg('');
@@ -100,33 +108,21 @@ export default function BenchmarkScanner({
     setDetection(null);
 
     try {
-      // Step 1: Detect GPU via WebGPU (Masked)
+      // Step 1: Detect GPU via WebGPU
       let gpuResult = await detectHardwareGPU();
-
       setDetection(gpuResult);
 
-      let detectedVram = 8;
-      let detectedIsIntegrated = false;
-
-      if (gpuResult.hardwareId === 'custom') {
-        detectedVram = gpuResult.vramGB || 8;
-      } else if (gpuResult.hardwareId) {
-        // Find hardware preset to check defaults
-        const hw = HARDWARE_PRESETS.find(h => h.id === gpuResult.hardwareId);
-        if (hw) {
-          detectedVram = hw.vramGB;
-          detectedIsIntegrated = hw.isIntegrated ?? false;
-        }
+      let initialHwId = 'rtx-4060-ti-8gb';
+      if (gpuResult.hardwareId && gpuResult.hardwareId !== 'custom') {
+        initialHwId = gpuResult.hardwareId;
+      } else if (gpuResult.name && gpuResult.name.toLowerCase().includes('4090')) {
+        initialHwId = 'rtx-4090';
+      } else if (gpuResult.name && gpuResult.name.toLowerCase().includes('3060')) {
+        initialHwId = 'rtx-3060-12gb';
       }
 
-      if (gpuResult.isFallback || gpuResult.isSoftwareRenderer || gpuResult.vendor === 'intel' || gpuResult.vendor === 'amd' || gpuResult.vendor === 'apple') {
-        detectedIsIntegrated = true;
-      }
-      
-      setConfirmVram(detectedVram);
-      setConfirmIsIntegrated(detectedIsIntegrated);
+      setSelectedHardwareId(initialHwId);
       setPhase('confirming');
-
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Detection failed');
       setPhase('error');
@@ -134,17 +130,15 @@ export default function BenchmarkScanner({
   }, []);
 
   const handleConfirmAndBenchmark = useCallback(async () => {
-    if (!detection) return;
     setPhase('benchmarking');
     
-    // Apply user overrides
-    const actualHardwareId = (detection.isFallback || detection.isSoftwareRenderer) && !detection.hardwareId 
-      ? 'rtx-4060-ti-8gb' 
-      : (detection.hardwareId || 'custom');
+    // Use the chosen hardware ID from dropdown
+    const chosenId = selectedHardwareId || 'rtx-4060-ti-8gb';
+    const chosenHw = HARDWARE_PRESETS.find(h => h.id === chosenId) || selectedHw;
       
-    onHardwareDetected(actualHardwareId, confirmVram, confirmIsIntegrated);
+    onHardwareDetected(chosenId, chosenHw.vramGB, chosenHw.isIntegrated);
     
-    if (confirmIsIntegrated && onIntegratedGpuDetected) {
+    if (chosenHw.isIntegrated && onIntegratedGpuDetected) {
       onIntegratedGpuDetected();
     }
 
@@ -155,20 +149,21 @@ export default function BenchmarkScanner({
         if (result.success) {
           setBenchmarkResult(result);
           onBenchmarkComplete(result);
-          updateState({ activeProfile: 'primary' });
+          updateState({ activeProfile: 'primary', hardwareId: chosenId });
           setPhase('done');
         } else {
           setErrorMsg(result.error ?? 'Benchmark failed');
           setPhase('done');
         }
       } else {
+        updateState({ activeProfile: 'primary', hardwareId: chosenId });
         setPhase('done');
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Benchmark failed');
       setPhase('error');
     }
-  }, [detection, confirmVram, confirmIsIntegrated, onHardwareDetected, onIntegratedGpuDetected, onBenchmarkComplete, updateState]);
+  }, [selectedHardwareId, selectedHw, onHardwareDetected, onIntegratedGpuDetected, onBenchmarkComplete, updateState]);
 
   const isRunning = phase === 'detecting' || phase === 'benchmarking';
 
@@ -211,63 +206,121 @@ export default function BenchmarkScanner({
           </div>
         </div>
       )}
-      {/* Confirming State */}
-      {phase === 'confirming' && detection && (
+
+      {/* Confirming & Dedicated GPU Selection State */}
+      {phase === 'confirming' && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="space-y-4 p-5 rounded-2xl bg-black/60 border border-indigo-500/30 backdrop-blur-md shadow-[0_0_30px_rgba(99,102,241,0.15)] relative overflow-hidden"
+          className="space-y-4 p-5 rounded-2xl bg-black/75 border border-indigo-500/40 backdrop-blur-xl shadow-[0_0_35px_rgba(99,102,241,0.2)] relative overflow-hidden"
         >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-50"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-70"></div>
           
           <div className="flex items-start gap-3">
-            <MonitorCheck className="w-5 h-5 text-indigo-400 mt-1" />
+            <MonitorCheck className="w-5 h-5 text-indigo-400 mt-1 flex-shrink-0" />
             <div>
-              <h3 className="text-white font-semibold">Confirm Hardware</h3>
+              <h3 className="text-white font-bold text-base">Select GPU for Benchmark</h3>
               <p className="text-xs text-indigo-200/80 mt-1">
-                We detected <strong className="text-indigo-300">{detection.name || detection.rawRenderer}</strong>. 
-                Please verify the details below for accurate assessment.
+                Detected: <strong className="text-indigo-300 font-mono">{detection?.name || detection?.rawRenderer || 'WebGPU Adapter'}</strong>.
+                Select your target GPU below to run the benchmark:
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                VRAM (GB)
-              </label>
-              <input
-                type="number"
-                value={confirmVram}
-                onChange={(e) => setConfirmVram(Number(e.target.value))}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                GPU Type
-              </label>
-              <select
-                value={confirmIsIntegrated ? 'integrated' : 'dedicated'}
-                onChange={(e) => setConfirmIsIntegrated(e.target.value === 'integrated')}
-                className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-              >
-                <option value="dedicated">Dedicated GPU</option>
-                <option value="integrated">Integrated GPU</option>
-              </select>
+          {/* Quick Selection Chips */}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Select Dedicated GPU</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'RTX 4090 (24GB)', id: 'rtx-4090' },
+                { label: 'RTX 4080 (16GB)', id: 'rtx-4080' },
+                { label: 'RTX 4070 (12GB)', id: 'rtx-4070' },
+                { label: 'RTX 3060 (12GB)', id: 'rtx-3060-12gb' },
+                { label: 'Apple M3 Max', id: 'm3-max-64gb' },
+              ].map(chip => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setSelectedHardwareId(chip.id)}
+                  className={`text-[10px] px-2.5 py-1 rounded-full font-semibold transition-all border ${
+                    selectedHardwareId === chip.id
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/50 shadow-[0_0_10px_rgba(99,102,241,0.3)]'
+                      : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
 
+          {/* Searchable GPU Dropdown */}
+          <div className="space-y-1 pt-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Or Search GPU Database</label>
+            <SearchableDropdown<HardwareSpec>
+              label=""
+              groups={HARDWARE_GROUPS}
+              selectedId={selectedHardwareId}
+              onSelect={(id) => setSelectedHardwareId(id)}
+              placeholder="Search for your GPU..."
+              getId={(hw) => hw.id}
+              getSearchText={(hw) => `${hw.name} ${hw.vramGB}GB ${hw.bandwidthGBs}GB/s`}
+              maxHeight="14rem"
+              renderSelected={(hw) => (
+                <div className="flex items-center justify-between w-full">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-white truncate">{hw.name}</div>
+                    <div className="text-[10px] text-slate-400 font-mono">{hw.vramGB} GB VRAM · {hw.bandwidthGBs} GB/s</div>
+                  </div>
+                  <span 
+                    className="text-[9px] font-black px-2 py-0.5 rounded text-white ml-2"
+                    style={{ background: previewTierConfig.color }}
+                  >
+                    {previewLlmScore.tier}-Tier
+                  </span>
+                </div>
+              )}
+              renderItem={(hw, isSelected) => (
+                <div className="flex items-center justify-between gap-2 py-0.5">
+                  <span className={`text-xs truncate ${isSelected ? 'font-bold text-white' : 'text-slate-300'}`}>
+                    {hw.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                    {hw.vramGB}GB · {hw.bandwidthGBs}GB/s
+                  </span>
+                </div>
+              )}
+            />
+          </div>
+
+          {/* Selected GPU Live Spec Box */}
+          <div className="p-3 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Selected Hardware</span>
+              <div className="text-sm font-bold text-white">{selectedHw.name}</div>
+              <div className="text-[11px] text-indigo-300 font-mono mt-0.5">
+                {selectedHw.vramGB} GB VRAM · {selectedHw.bandwidthGBs} GB/s · {(selectedHw.fp32TFLOPS ?? 0).toFixed(1)} TFLOPS
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Readiness</span>
+              <div className="text-sm font-black font-mono" style={{ color: previewTierConfig.color }}>
+                {previewLlmScore.score}/100 ({previewLlmScore.tier})
+              </div>
+            </div>
+          </div>
+
+          {/* Run Button */}
           <button
             onClick={handleConfirmAndBenchmark}
-            className="w-full mt-4 py-3 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-500 
-                       border border-indigo-400/20 transition-all duration-300 cursor-pointer"
+            className="w-full mt-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 
+                       border border-indigo-400/30 shadow-lg shadow-indigo-500/25 transition-all duration-300 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
           >
-            Confirm & Run Benchmark
+            <Zap className="w-4 h-4 text-white" />
+            Run Benchmark with {selectedHw.name.split(' ')[0]} {selectedHw.name.split(' ')[1]}
           </button>
         </motion.div>
       )}
-
 
       {/* Error State */}
       {phase === 'error' && (

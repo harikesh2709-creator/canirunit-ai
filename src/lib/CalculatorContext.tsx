@@ -139,14 +139,6 @@ export function CalculatorProvider({ children }: { children: React.ReactNode }) 
         vramGB: state.customVramGB,
         bandwidthGBs: state.customBandwidthGBs,
       };
-    } else {
-      // Allow overriding VRAM on presets if customVramGB doesn't match default
-      if (state.customVramGB && state.customVramGB !== baseHw.vramGB) {
-        baseHw = {
-          ...baseHw,
-          vramGB: state.customVramGB
-        };
-      }
     }
     
     if (state.isIntegrated !== undefined) {
