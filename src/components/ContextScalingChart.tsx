@@ -108,7 +108,19 @@ export default function ContextScalingChart({
   );
 }
 
-function CustomTooltip({ active, payload, label, hardwareVram }: any) {
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+    payload: { totalVram: number };
+  }>;
+  label?: string;
+  hardwareVram: number;
+}
+
+function CustomTooltip({ active, payload, label, hardwareVram }: TooltipProps) {
   if (active && payload && payload.length) {
     const total = payload[0].payload.totalVram;
     const isOom = total > hardwareVram;
@@ -116,7 +128,7 @@ function CustomTooltip({ active, payload, label, hardwareVram }: any) {
     return (
       <div className="theme-panel p-3 text-sm shadow-xl rounded-lg z-50">
         <p className="font-bold text-slate-900 dark:text-white mb-2">{label} Tokens</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index: number) => (
           <div key={index} className="flex justify-between gap-4 mb-1">
             <span style={{ color: entry.color }}>{entry.name}:</span>
             <span className="font-mono text-slate-700 dark:text-slate-300">{entry.value.toFixed(2)} GB</span>

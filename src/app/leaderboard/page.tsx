@@ -16,8 +16,11 @@ export default function LeaderboardPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setEntries(getLeaderboard());
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setEntries(getLeaderboard());
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!mounted) return null;

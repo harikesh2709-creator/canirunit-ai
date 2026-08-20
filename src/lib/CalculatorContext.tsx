@@ -53,11 +53,10 @@ function SearchParamsSync() {
   const searchParams = useSearchParams();
   const context = useContext(CalculatorContext);
   
-  if (!context) return null;
-  const { state, updateState } = context;
-
   // Handle URL params on mount
   useEffect(() => {
+    if (!context) return;
+    const { updateState } = context;
     const gpu = searchParams.get('gpu');
     const model = searchParams.get('model');
     const quant = searchParams.get('quant');
@@ -68,7 +67,10 @@ function SearchParamsSync() {
     if (gpu) newState.hardwareId = gpu;
     if (model) newState.modelId = model;
     if (quant) newState.quantId = quant;
-    if (ctx) newState.contextLength = parseInt(ctx, 10);
+    if (ctx) {
+      const parsedCtx = parseInt(ctx, 10);
+      newState.contextLength = parsedCtx < 100 ? parsedCtx * 1024 : parsedCtx;
+    }
     if (gpus) newState.gpuCount = parseInt(gpus, 10);
 
     if (Object.keys(newState).length > 0) {
@@ -79,6 +81,8 @@ function SearchParamsSync() {
 
   // Auto-sync state to URL parameters bidirectionally
   useEffect(() => {
+    if (!context) return;
+    const { state } = context;
     const currentParams = new URLSearchParams(searchParams.toString());
     
     let needsUpdate = false;
@@ -92,8 +96,9 @@ function SearchParamsSync() {
       // Use router.replace with scroll: false to satisfy Next.js App Router shallow replacement requirements
       router.replace(`?${currentParams.toString()}`, { scroll: false });
     }
-  }, [state.hardwareId, state.modelId, state.quantId, state.contextLength, state.gpuCount, searchParams, router]);
+  }, [context, searchParams, router]);
 
+  if (!context) return null;
   return null;
 }
 

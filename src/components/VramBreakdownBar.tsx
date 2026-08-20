@@ -13,15 +13,16 @@ export default memo(function VramBreakdownBar({ breakdown }: VramBreakdownBarPro
   const { modelWeightsGB, cudaContextGB = 0, kvCacheGB, totalRequiredGB, availableVramGB } = breakdown;
 
   const isOverflow = totalRequiredGB > availableVramGB;
-  const usagePercent = Math.min((totalRequiredGB / availableVramGB) * 100, 100);
+  const safeVramGB = availableVramGB || 1;
+  const usagePercent = Math.min((totalRequiredGB / safeVramGB) * 100, 100);
 
   // Calculate blocks for Memory Tetris
   // Exact percentage recalculation dynamically distributed across 100 blocks
   const TOTAL_AVAILABLE_BLOCKS = 100;
   
-  const weightBlocksCount = Math.round((modelWeightsGB / availableVramGB) * TOTAL_AVAILABLE_BLOCKS);
-  const contextBlocksCount = Math.round((cudaContextGB / availableVramGB) * TOTAL_AVAILABLE_BLOCKS);
-  const kvBlocksCount = Math.round((kvCacheGB / availableVramGB) * TOTAL_AVAILABLE_BLOCKS);
+  const weightBlocksCount = Math.round((modelWeightsGB / safeVramGB) * TOTAL_AVAILABLE_BLOCKS);
+  const contextBlocksCount = Math.round((cudaContextGB / safeVramGB) * TOTAL_AVAILABLE_BLOCKS);
+  const kvBlocksCount = Math.round((kvCacheGB / safeVramGB) * TOTAL_AVAILABLE_BLOCKS);
   
   const blocks = useMemo(() => {
     const arr = [];
@@ -47,7 +48,7 @@ export default memo(function VramBreakdownBar({ breakdown }: VramBreakdownBarPro
     
     // Dynamically append overflow blocks if total exceeds VRAM
     if (isOverflow) {
-      const overflowCount = Math.round(((totalRequiredGB - availableVramGB) / availableVramGB) * TOTAL_AVAILABLE_BLOCKS);
+      const overflowCount = Math.round(((totalRequiredGB - availableVramGB) / (availableVramGB || 1)) * TOTAL_AVAILABLE_BLOCKS);
       for (let i = 0; i < Math.min(overflowCount, 20); i++) { // cap overflow blocks visually
         arr.push('overflow');
       }

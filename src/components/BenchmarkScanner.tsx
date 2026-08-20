@@ -109,7 +109,7 @@ export default function BenchmarkScanner({
 
     try {
       // Step 1: Detect GPU via WebGPU
-      let gpuResult = await detectHardwareGPU();
+      const gpuResult = await detectHardwareGPU();
       setDetection(gpuResult);
 
       let initialHwId = 'rtx-4060-ti-8gb';

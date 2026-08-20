@@ -78,9 +78,9 @@ export default function HuggingFaceImport({ onImport }: HuggingFaceImportProps) 
       // Clear success message after 3 seconds
       setTimeout(() => setStatus(null), 3000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('HF Import Error:', err);
-      setStatus({ type: 'error', message: err.message || 'An unknown error occurred.' });
+      setStatus({ type: 'error', message: err instanceof Error ? err.message : 'An unknown error occurred.' });
     } finally {
       setLoading(false);
     }

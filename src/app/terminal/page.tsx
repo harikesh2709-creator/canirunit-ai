@@ -41,18 +41,24 @@ export default function TerminalPage() {
     newLogs.push({ id: `${t}-9`, text: `[DONE] Analysis complete.`, type: 'success', timestamp: getTimestamp() });
 
     let i = 0;
-    setLogs([]);
-    const interval = setInterval(() => {
-      if (i < newLogs.length) {
-        const currentLog = newLogs[i];
-        setLogs(prev => [...prev, currentLog]);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 200);
+    let interval: NodeJS.Timeout;
+    const timer = setTimeout(() => {
+      setLogs([]);
+      interval = setInterval(() => {
+        if (i < newLogs.length) {
+          const currentLog = newLogs[i];
+          setLogs(prev => [...prev, currentLog]);
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 200);
+    }, 0);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      if (interval) clearInterval(interval);
+    };
   }, [result, hardware, model]);
 
   useEffect(() => {

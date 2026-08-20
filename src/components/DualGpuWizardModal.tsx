@@ -36,11 +36,14 @@ export default function DualGpuWizardModal({
   const [step, setStep] = useState<'prompt' | 'select'>('prompt');
   const [selectedId, setSelectedId] = useState<string>('');
 
-  // Reset step when modal opens
+  // Reset step when modal closes
   React.useEffect(() => {
-    if (isOpen) {
-      setStep('prompt');
-      setSelectedId('');
+    if (!isOpen) {
+      const timer = setTimeout(() => {
+        setStep('prompt');
+        setSelectedId('');
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
