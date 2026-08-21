@@ -44,6 +44,7 @@ import { CalculatorProvider } from '@/lib/CalculatorContext';
 import ClientLayout from '@/components/ClientLayout';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import Script from 'next/script';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export default function RootLayout({
   children,
@@ -89,6 +90,7 @@ export default function RootLayout({
             </ClientLayout>
           </CalculatorProvider>
         </ThemeProvider>
+        <GoogleAnalytics gaId="G-PYWSJZ0H8M" />
       </body>
     </html>
   );
